@@ -19,6 +19,12 @@ VISIBLE_CASES_FILE = (
     / "visible-cases.json"
 )
 
+ORIGINAL_CASES_FILE = (
+    ROOT
+    / "evaluation"
+    / "original-cases.json"
+)
+
 
 def normalize(text: str) -> str:
     """Normalize text for deterministic matching."""
@@ -482,15 +488,23 @@ def run_case(case: dict) -> dict:
     }
 
 
-def load_visible_cases() -> list[dict]:
-    """Load supplied evaluation cases."""
-    data = json.loads(
+def load_visible_cases():
+    visible_data = json.loads(
         VISIBLE_CASES_FILE.read_text(
             encoding="utf-8"
         )
     )
 
-    return data["cases"]
+    original_data = json.loads(
+        ORIGINAL_CASES_FILE.read_text(
+            encoding="utf-8"
+        )
+    )
+
+    visible_cases = visible_data["cases"]
+    original_cases = original_data["cases"]
+
+    return visible_cases + original_cases
 
 
 def print_results(

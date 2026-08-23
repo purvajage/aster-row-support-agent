@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass, field
 
-from app.context_resolver import resolve_context
+from app.context_resolver import _contains_follow_up_language, resolve_context
 from app.conversation import ConversationManager
 from app.conflict_detector import (
     conflict_reason,
@@ -21,21 +21,34 @@ class WorkflowResult:
     handoff: bool = False
     tool_called: bool = False
 
-
 # =========================================================
 # ORDER HELPERS
 # =========================================================
 
 def _extract_order_id(message: str) -> str | None:
     """Extract a valid-looking order ID such as ORD-1007."""
-    match = re.search(r"\bORD-\d{4}\b", message.upper())
+    match = re.search(
+        r"\bORD-\d{4}\b",
+        message.upper(),
+    )
+
     return match.group(0) if match else None
 
 
-def _looks_like_order_question(message: str) -> bool:
-    """Return True only when the message clearly concerns an order."""
-    text = message.lower()
+def _looks_like_order_question(
+    message: str,
+    has_active_order: bool = False,
+) -> bool:
+    """
+    Return True when the message clearly concerns an order.
 
+    A short follow-up such as "When will it arrive?" is treated
+    as an order question only when the conversation already has
+    an active order.
+    """
+    text = message.lower().strip()
+
+    # Explicit order ID always makes this an order question.
     if _extract_order_id(message):
         return True
 
@@ -64,9 +77,90 @@ def _looks_like_order_question(message: str) -> bool:
         "change the order",
     ]
 
-    return any(phrase in text for phrase in strong_order_phrases)
+    if any(
+        phrase in text
+        for phrase in strong_order_phrases
+    ):
+        return True
+
+    # Short follow-up order questions.
+    if has_active_order:
+        follow_up_order_phrases = [
+            "when will it arrive",
+            "when will it get here",
+            "when does it arrive",
+            "when should it arrive",
+            "how long will it take",
+            "where is it",
+            "where is that order",
+            "what happened to it",
+            "is it shipped",
+            "is it still coming",
+            "when is it coming",
+        ]
+
+        if any(
+            phrase in text
+            for phrase in follow_up_order_phrases
+        ):
+            return True
+
+    return False
 
 
+def _handle_order_lookup(
+    manager: ConversationManager,
+    session_id: str,
+    order_id: str,
+    message: str,
+) -> WorkflowResult:
+    """
+    Look up an already-known order for a conversational follow-up.
+
+    This is used for questions such as:
+        "When will it arrive?"
+        "Where is it?"
+        "Is it still coming?"
+
+    The existing order ID comes from conversation context, so we
+    do not invent a new order ID.
+    """
+
+    result = lookup_order(order_id)
+
+    if not result.found:
+        return WorkflowResult(
+            action="order_lookup_failed",
+            order_id=order_id,
+            answer=(
+                "The order was not found. "
+                "I couldn't find that order. "
+                "Please check the order ID or contact support."
+            ),
+            handoff=True,
+            tool_called=True,
+        )
+
+    manager.set_order(
+        session_id,
+        result.order_id,
+    )
+
+    manager.set_topic(
+        session_id,
+        "order_status",
+    )
+
+    return WorkflowResult(
+        action="order_lookup",
+        order_id=result.order_id,
+        answer=generate_order_response(
+            result.data,
+            message,
+        ),
+        handoff=False,
+        tool_called=True,
+    )
 def _requests_private_order_data(message: str) -> bool:
     """Detect requests for internal/private customer data."""
     text = message.lower()
@@ -334,6 +428,41 @@ def _build_breeze_conflict_response() -> str:
 
 
 # =========================================================
+
+def _is_final_sale_change_of_mind_question(
+    message: str,
+) -> bool:
+    """Detect final-sale change-of-mind return questions."""
+
+    text = message.lower()
+
+    has_final_sale = (
+        "final-sale" in text
+        or "final sale" in text
+    )
+
+    change_of_mind_terms = [
+        "changed my mind",
+        "change my mind",
+        "change of mind",
+        "don't want it",
+        "do not want it",
+        "no longer want it",
+        "changed my preference",
+        "changed my preferences",
+        "don't like it",
+        "do not like it",
+    ]
+
+    return (
+        has_final_sale
+        and any(
+            term in text
+            for term in change_of_mind_terms
+        )
+    )
+    # =====================================================
+
 # MAIN WORKFLOW
 # =========================================================
 
@@ -420,6 +549,24 @@ def run_workflow(
         )
 
     # =====================================================
+    # ACTIVE ORDER FOLLOW-UP
+    # =====================================================
+
+    if (
+        order_id
+        and _contains_follow_up_language(message)
+    ):
+        order_result = _handle_order_lookup(
+            manager=manager,
+            session_id=session_id,
+            order_id=order_id,
+            message=message,
+        )
+
+        if order_result is not None:
+            return order_result
+
+    # =====================================================
     # INSUFFICIENT INFORMATION
     # =====================================================
 
@@ -441,9 +588,7 @@ def run_workflow(
         if not explicit_order_id and not order_id:
             return WorkflowResult(
                 action="ask_for_order_id",
-                answer=(
-                     "Please provide your order ID so I can look it up."
-                ),
+                answer="Please provide your order ID so I can look it up.",
                 handoff=False,
                 tool_called=False,
             )
@@ -469,15 +614,12 @@ def run_workflow(
         return WorkflowResult(
             action="order_lookup",
             order_id=result.order_id,
-            answer=generate_order_response(
-                result.data,
-                message,
-            ),
+            answer=generate_order_response(result.data, message),
             handoff=False,
             tool_called=True,
         )
 
-    # =====================================================
+  
     # KNOWLEDGE BASE ROUTING
     # =====================================================
 
@@ -532,6 +674,40 @@ def run_workflow(
                 handoff=True,
                 tool_called=False,
             )
+     
+        # -------------------------------------------------
+        # FINAL-SALE CHANGE OF MIND
+        # -------------------------------------------------
+
+        if _is_final_sale_change_of_mind_question(message):
+            final_sale_passages = [
+                p
+                for p in passages
+                if "03-final-sale-and-promotions.md" in p.source.filename
+            ]
+
+            if final_sale_passages:
+                manager.set_topic(session_id, message)
+
+                return WorkflowResult(
+                    action="knowledge_retrieval",
+                    answer=(
+                        "Final-sale items cannot be returned or "
+                        "exchanged because of fit, color preference, "
+                        "duplicate purchase, or another change of mind."
+                        "\n\n"
+                        "Final sale only prevents change-of-mind "
+                        "returns. Damaged, defective, or incorrect "
+                        "final-sale items may still be eligible for "
+                        "review."
+                        "\n\n"
+                        "Source: 03-final-sale-and-promotions.md — "
+                        f"{final_sale_passages[0].source.heading}"
+                    ),
+                    retrieved_passages=final_sale_passages,
+                    handoff=False,
+                    tool_called=False,
+                )
 
         # -------------------------------------------------
         # TRAILPLUS

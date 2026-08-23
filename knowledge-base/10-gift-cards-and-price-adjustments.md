@@ -1,3 +1,5 @@
+
+
 ---
 document_id: PAY-2026-03
 title: Gift Cards and Price Adjustments
