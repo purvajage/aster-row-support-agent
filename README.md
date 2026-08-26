@@ -938,8 +938,6 @@ If this were being taken beyond the take-home assignment, I would prioritize:
 11. Add broader adversarial prompt-injection testing.
 12. Add evaluation coverage for paraphrases and unseen combinations.
 
-The current implementation intentionally avoids these production-scale components because the assignment prioritizes a small, reliable system within the 6–8 hour timebox.
-
 ---
 
 ### 5. Evaluation
@@ -956,23 +954,7 @@ and show:
 Overall: 20/20 passed
 ```
 
-### Demo media
 
-Add the final 2–4 minute GIF or video here before submission.
-
-Example Markdown for a GIF:
-
-```markdown
-![Aster & Row Support Agent Demo](docs/demo.gif)
-```
-
-For a video hosted externally:
-
-```markdown
-[Watch the Aster & Row Support Agent Demo](YOUR_VIDEO_LINK)
-```
-
----
 
 ## 22. Evaluation Case Inventory
 
@@ -1012,60 +994,9 @@ This provides coverage beyond the supplied visible wording and specifically test
 
 ---
 
-## 23. Final Verification
 
-From a clean checkout, verify the environment and run:
 
-```powershell
-python -m py_compile app/agent.py
-python -m py_compile app/agent_workflow.py
-```
-
-Then:
-
-```powershell
-pytest -q
-```
-
-Finally:
-
-```powershell
-python evaluation/run_evaluation.py
-```
-
-Expected evaluation result:
-
-```text
-Overall: 20/20 passed
-```
-
-Before pushing to GitHub:
-
-```powershell
-git status
-```
-
-Verify that no secrets are tracked.
-
-The repository should not contain:
-
-```text
-.env
-API keys
-credentials
-.venv/
-__pycache__/
-```
-
-The repository should contain the safe template:
-
-```text
-.env.example
-```
-
----
-
-## 24. Submission Checklist
+## 23. Submission Checklist
 
 Before submitting the GitHub repository, confirm:
 
@@ -1088,8 +1019,6 @@ Before submitting the GitHub repository, confirm:
 - [x] Environment variables documented.
 - [x] `.env.example` contains no real credentials.
 - [x] Observability/debug behavior documented.
-- [ ] 2–4 minute GIF/video added to README.
-- [ ] Final GitHub push verified.
 
 ---
 
@@ -1116,4 +1045,3 @@ The completed reliability areas include:
 - Human handoff
 - Regression evaluation
 
-The remaining submission-specific task is to add the final demo GIF/video, verify the README/media link on GitHub, and perform the final repository push.
