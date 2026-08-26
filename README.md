@@ -394,7 +394,7 @@ aster-row-support-agent/
 ### 10.1 Clone the repository
 
 ```powershell
-git clone <YOUR-GITHUB-REPOSITORY-URL>
+git clone https://github.com/purvajage/aster-row-support-agent
 cd aster-row-support-agent
 ```
 
