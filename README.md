@@ -942,52 +942,6 @@ The current implementation intentionally avoids these production-scale component
 
 ---
 
-## 21. Demo
-
-A 2–4 minute demo should demonstrate the following:
-
-### 1. Knowledge-base question
-
-Show a policy question and the returned source citation.
-
-Example:
-
-```text
-What is the standard return window?
-```
-
-The response should include the relevant policy source.
-
-### 2. Order lookup
-
-Show:
-
-```text
-Where is ORD-1007?
-```
-
-and demonstrate that the response comes from an actual order lookup.
-
-### 3. Multi-turn conversation
-
-Show:
-
-```text
-Do you ship internationally?
-
-What about Canada, and how long does it take?
-```
-
-### 4. Safe abstention / human assistance
-
-Show:
-
-```text
-Are all fabrics and adhesives in your bags vegan?
-```
-
-and demonstrate that the agent does not invent a certification and recommends human confirmation.
-
 ### 5. Evaluation
 
 Run:
