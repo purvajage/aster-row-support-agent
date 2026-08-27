@@ -132,8 +132,6 @@ The model is used where generation is useful, while deterministic application lo
 | Interface | Python application/CLI-style commands |
 | Storage | Local files and local retrieval/index structures |
 
-The project does not require a production vector database, deployment platform, fine-tuning, or a polished frontend.
-
 ---
 
 ## 5. Knowledge Base / RAG
