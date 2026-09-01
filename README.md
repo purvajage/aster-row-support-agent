@@ -368,11 +368,6 @@ aster-row-support-agent/
 │
 ├── knowledge-base/
 │   └── *.md
-│
-├── logs/
-│
-├── scripts/
-│
 ├── tests/
 │   ├── test_agent_workflow.py
 │   ├── test_context_resolver.py
