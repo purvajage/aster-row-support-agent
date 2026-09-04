@@ -441,8 +441,6 @@ OPENAI_MODEL=gpt-5-mini
 OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
-Never commit the real API key.
-
 The real `.env` file is excluded by `.gitignore`.
 
 A safe `.env.example` should contain placeholders only:
@@ -910,7 +908,6 @@ A separate routing issue was also identified where broad order keyword matching 
 - The system does not include production authentication or authorization.
 - The current interface is intended for demonstration/evaluation rather than production deployment.
 - Production deployment would require stronger secret management, authentication, rate limiting, monitoring, alerting, and integration with real commerce systems.
-- The `scripts/` directory is currently empty; the documented evaluation and application commands are run directly through Python.
 
 ---
 
